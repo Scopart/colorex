@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-#    colorex display log files 
+#    colorex is a console tool that displays files highlighting some patterns with colors
 #    Copyright (C) 2011  http://www.scopart.fr
 #    
 #    This program is free software: you can redistribute it and/or modify
@@ -14,7 +14,7 @@
 #    GNU General Public License for more details.
 #    
 #    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#    along with this program.  If not, see http://www.gnu.org/licenses/gpl-3.0.txt.
 
 __version__ = "1.2"
 
@@ -94,9 +94,9 @@ def main():
     (options_instance, args) = option_parse()
     options = options_instance.__dict__
     
-    if not check_pattern(options):
-        sys.stderr.write("ERROR : ambigous pattern '%s'\n" % ambigous_pattern[0])
-        sys.exit(1)
+ #    if not check_pattern(options):
+ #       sys.stderr.write("ERROR : ambigous pattern '%s'\n" % ambigous_pattern[0])
+ #       sys.exit(1)
 
     try:
         if args:
