@@ -16,7 +16,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see http://www.gnu.org/licenses/gpl-3.0.txt.
 
-__version__ = "1.2"
+__version__ = "2.0"
 
 from optparse import OptionParser, TitledHelpFormatter
 import random, sys, re, types
@@ -26,39 +26,25 @@ colorcode = {'red':chr(27)+'[31m', 'green':chr(27)+'[32m', 'yellow':chr(27)+'[33
              'blue':chr(27)+'[34m', 'magenta':chr(27)+'[35m', 'cyan':chr(27)+'[36m',
              'bred':chr(27)+'[41m', 'bgreen':chr(27)+'[42m', 'byellow':chr(27)+'[43m',
              'bblue':chr(27)+'[44m', 'bmagenta':chr(27)+'[45m', 'bcyan':chr(27)+'[46m',
-             'blink':chr(27)+'[5m', 'bold':chr(27)+'[1m',
+             'blink':chr(27)+'[5m', 'bold':chr(27)+'[1m', 'undrln' : chr(27)+'[4m',
              'reset':chr(27)+'[0m'}
-ambigous_pattern = [0]
 
-
-def check_pattern(options):
-    for pattern_list in options.values():
-        if type(pattern_list) == types.ListType:
-            for pattern in pattern_list:
-                for ansi_seq in colorcode.values():
-                    try:
-                        match_obj = re.search(pattern , ansi_seq)
-                    except sre_constants.error, info:
-                        sys.stderr.write("ERROR :  %s  : %s\n" % (info, pattern))
-                        sys.exit(1)
-                    if match_obj:
-                        ambigous_pattern[0] = pattern
-                        return False
-    return True
-
-def colorise(line, options):
+def colorise(line, regexp, tx_list, options):
+    def get_colorised_value(matchobj):
+        return tx_list[matchobj.lastindex - 1] + matchobj.group() + colorcode['reset']
     if options['bisounours']:
         color = random.choice(colorcode.keys())
-        line = line.replace(line,  colorcode[color] + line.rstrip() + colorcode['reset'])
+        return line.replace(line,  colorcode[color] + line.rstrip() + colorcode['reset']).rstrip()
     else:
-        for color in colorcode.keys():
-            if color != 'reset':
-                if options[color]:
-                    for pattern in options[color]:
-                        match_obj = re.search(pattern , line)
-                        if match_obj:
-                            line = re.sub(pattern, colorcode[color] + match_obj.group() + colorcode['reset'], line)
-    return line.rstrip()
+        return regexp.sub(get_colorised_value, line).rstrip()
+
+def create_tx_dict(options):
+    tx_dict = {}
+    for option, values in options.items():
+        if type(values) == types.ListType:
+            for pattern in values:
+                tx_dict['('+pattern+')'] = colorcode[option]
+    return tx_dict
 
 def option_parse():
     version = __version__
@@ -86,17 +72,16 @@ def option_parse():
     parser.add_option("-C", "--bcyan", action="append", dest="bcyan", help="display BCYAN pattern in cyan background")
     parser.add_option("-K", "--blink", action="append", dest="blink", help="display BLINK pattern blinking (not widely supported)")
     parser.add_option("-D", "--bold", action="append", dest="bold", help="display BOLD pattern in bold")
+    parser.add_option("-u", "--undrln", action="append", dest="undrln", help="display UNDRLN pattern underlined")
     parser.add_option("-N", "--bisounours", action="store_true", dest="bisounours", default=False, help="display with random colors")
-
     return parser.parse_args()
 
 def main():
     (options_instance, args) = option_parse()
     options = options_instance.__dict__
-    
- #    if not check_pattern(options):
- #       sys.stderr.write("ERROR : ambigous pattern '%s'\n" % ambigous_pattern[0])
- #       sys.exit(1)
+    tx_dict = create_tx_dict(options)
+    regexp = re.compile('|'.join(tx_dict))
+    tx_list = tx_dict.values()
 
     try:
         if args:
@@ -104,7 +89,7 @@ def main():
                 try:
                     file_handle = open(file, 'r')
                     for line in file_handle:
-                        print colorise(line, options)
+                        print colorise(line, regexp, tx_list, options)
                     file_handle.close()
                 except Exception,info:
                     sys.stderr.write("ERROR : can't read file %s\n" % file)
@@ -112,17 +97,14 @@ def main():
         else:
             while True:
                 line = raw_input()
-                print colorise(line, options)
+                print colorise(line, regexp, tx_list, options)
 
     except EOFError:
         sys.stderr.write('End of Input ...\n')
-
     except KeyboardInterrupt:
         sys.stderr.write('KeyboardInterrupt ...')
-
     except Exception, info:
         sys.stderr.write("ERROR : %s\n" % info)
 
 if __name__ == "__main__":
     main()
-
