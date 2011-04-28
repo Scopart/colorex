@@ -1,6 +1,6 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
-#    colorex is a console tool that displays files highlighting some patterns with colors
+#    colorex is a powerful console tool that displays files highlighting some patterns with colors
 #    Copyright (C) 2011  http://www.scopart.fr
 #    
 #    This program is free software: you can redistribute it and/or modify
@@ -49,12 +49,11 @@ def create_tx_dict(options):
 def option_parse():
     version = __version__
     description = "Display files or sdtin with pretty colors for matched patterns. if you don't specify files, stdin is used."
-    epilog = """Regular expressions are interpreted, so if you want to match a '*' escape it with a backslash.
+    epilog = """Regular expressions are interpreted, so if you want to match a '*' or a '[' ... escape it with a backslash.
                                                                             usage examples:
                                                                             ---------------
-                                                                    colorex --red '\*' foo.txt
-                                                                    tail -f bar.txt | colorex --blue word --red otherword --yellow '[0-9]{3}'
-                                                                    (some patterns can't be used if they match ansi escape code)"""
+                                                                    colorex --red '\*' -b '\[' foo.txt
+                                                                    tail -f bar.txt | colorex --blue word --red otherword --yellow '[0-9]{3}'"""
     usage='colorex [options] [file1] [file2] ...'
     formatter=TitledHelpFormatter(width=90, max_help_position=39)
     parser = OptionParser( prog='colorex',description=description, version=__version__, usage=usage, formatter=formatter, epilog=epilog)
@@ -80,31 +79,39 @@ def main():
     (options_instance, args) = option_parse()
     options = options_instance.__dict__
     tx_dict = create_tx_dict(options)
+    if not tx_dict and not options['bisounours']:
+        sys.stderr.write("nothing to do :-(\ntry --help\n")
+        sys.exit(0)
     regexp = re.compile('|'.join(tx_dict))
     tx_list = tx_dict.values()
 
-    try:
-        if args:
-            for file in args:
-                try:
-                    file_handle = open(file, 'r')
-                    for line in file_handle:
-                        print colorise(line, regexp, tx_list, options)
-                    file_handle.close()
-                except Exception,info:
-                    sys.stderr.write("ERROR : can't read file %s\n" % file)
-                    sys.stderr.write(str(info) + '\n')
-        else:
-            while True:
-                line = raw_input()
-                print colorise(line, regexp, tx_list, options)
-
-    except EOFError:
-        sys.stderr.write('End of Input ...\n')
-    except KeyboardInterrupt:
-        sys.stderr.write('KeyboardInterrupt ...')
-    except Exception, info:
-        sys.stderr.write("ERROR : %s\n" % info)
+    if args:
+        for file in args:
+            try:
+                file_handle = open(file, 'r')
+                for line in file_handle:
+                    print colorise(line, regexp, tx_list, options)
+                file_handle.close()
+            except Exception,info:
+                sys.stderr.write("ERROR : can't read file %s\n" % file)
+                sys.stderr.write(str(info) + '\n')
+    else:
+        while True:
+            line = raw_input()
+            print colorise(line, regexp, tx_list, options)
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.stderr.write('KeyboardInterrupt\nexiting ...\n')
+        sys.exit(0)
+    except EOFError:
+        sys.stderr.write('End of Input ...\n')
+        sys.exit(0)
+    except sre_constants.error, info:
+        sys.stderr.write("ERROR : bad expression : %s\n" % info)
+        sys.exit(1)
+    except Exception, info:
+        sys.stderr.write("ERROR : %s\n" % info)
+        sys.exit(1)
