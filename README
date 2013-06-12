@@ -71,3 +71,7 @@ colorex -r 'ERROR|FATAL' -R '\[[0-9]{4}\]'
 another case:
 tail -f /var/log/syslog | colorex -G '[0-9]{2}:[0-9]{2}:[0-9]{2}' -b $(hostname) -M '\[[0-9]{1,5}\]' -y root
 
+ignore case (case insensitive):
+prepend search word with (?i) to match without considering case
+    tail -f logfile | colorex  --r '(?i)hello'
+this will match 'hello', 'Hello' 'HELLO' ..etc
